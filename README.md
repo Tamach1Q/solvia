@@ -17,10 +17,27 @@ npm run dev
 
 スケジュール管理、Google Calendar連携、担当者の推薦・アサイン機能は対象外です。
 
+## ナレッジ蓄積・共有デモ（feature/knowledge）
+
+異常案件を軸に、ノウハウが「使われる→溜まる→次に届く」流れを見せます。
+
+1. 統合監視 → 青森大間発電所（PCS-03停止）
+2. 異常案件：「ナレッジ照合」で同型PCS×内部温度異常の事例6件がヒット。原因候補と切り分け手順に、元になった事例（K-xxx）を表示。「過去の類似事例」で事例カードのドロワーが開く
+3. 遠隔再起動 → 一時復旧後に再停止 → 現地対応判定（持参品もナレッジから）
+4. 「担当者のiPadへ手順を送る」：共有URLで、ナレッジ付きの切り分け手順が現場画面に届く
+5. 現地作業完了 → 復旧確認 → 「この案件をナレッジに残す」：通話記録とレポートからAIが下書き（モック）→ 確認して公開
+6. サイドバー「ナレッジ」：設備・事象で体系化した一覧に K-301（NEW）が追加される
+
+リハーサル後は、ナレッジ画面の「デモをリセット」で公開したカードと案件の進行を初期状態に戻せます。
+
+- `src/data/knowledgeData.ts`：事例カード・通話記録・抽出結果（すべて架空。メーカー名・アラームコードは伏せています）
+- `src/services/knowledgeService.ts`：検索・抽出・公開の境界（現在はモック。公開したカードはブラウザのlocalStorageに保存）
+- `src/Knowledge.tsx` / `src/knowledge.css`：ドロワー・ナレッジ化パネル・ナレッジ一覧
+
 ## 実APIについて
 
 - `src/services/fusionSolarService.ts`: FusionSolar等の監視データ取得境界。現在はモックです。
-- `src/services/misoraService.ts`: MISORA履歴検索・報告書保存境界。現在はモックです。
+- `src/services/misoraService.ts`: 報告書・CRM（画面表記）の履歴検索・報告書保存境界。現在はモックです。
 - `src/services/sharedInspectionService.ts`: 管理画面と現場画面の共有境界です。Netlify Functions / Blobsを利用します。
 - MISORA APIの有無、写真アクセス、書き込み可否、FusionSolarの取得粒度は仮定していません。
 - `src/data/mockData.ts`内のデータはすべてデモ用です。

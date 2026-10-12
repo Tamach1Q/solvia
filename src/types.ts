@@ -59,6 +59,8 @@ export interface InspectionItem {
   requiredMeasurement: MeasurementRequirement | null
   result: InspectionResult
   comment: string
+  knowledgeRefs?: KnowledgeRef[]
+  knowledgeTip?: string
 }
 
 export interface InspectionPhoto {
@@ -88,4 +90,36 @@ export interface HistoryRecord {
   cause: string
   action: string
   matchLevel: '同一設備' | '同一発電所' | '同一症状' | '同型設備' | '他発電所類似'
+}
+
+export interface KnowledgeRef {
+  id: string
+  label: string
+  base: string
+}
+
+export type KnowledgeSourceKind = 'ヘルプデスク通話' | '駆けつけレポート' | '点検報告書' | '社内CRM'
+
+export interface KnowledgeCard {
+  id: string
+  equipmentType: 'PCS' | 'ストリング・パネル' | '系統' | '監視・通信'
+  maker: string
+  modelClass: string
+  event: string
+  causeGroup: string
+  title: string
+  symptom: string
+  steps: string[]
+  cause: string
+  action: string
+  cautions: string[]
+  bring: string[]
+  dispatch: '現地対応' | '遠隔で解決' | '出動不要'
+  sources: { kind: KnowledgeSourceKind; caseId: string }[]
+  base: string
+  author: string
+  usedCount: number
+  updatedAt: string
+  newInsight?: string
+  isNew?: boolean
 }

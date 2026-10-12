@@ -9,7 +9,7 @@ export const plant: Plant = {
 }
 
 export const equipment: Equipment[] = [
-  { equipmentId: 'PCS-COM1-4', plantId: plant.plantId, equipmentType: 'PCS', manufacturer: 'Huawei', model: 'SUN2000-50KTL', serialNumber: 'HV-PC-1048' },
+  { equipmentId: 'PCS-COM1-4', plantId: plant.plantId, equipmentType: 'PCS', manufacturer: 'メーカーA', model: '50kW級PCS', serialNumber: 'HV-PC-1048' },
   { equipmentId: 'STRING-03', plantId: plant.plantId, equipmentType: 'ストリング', manufacturer: '—', model: 'String 3', serialNumber: 'ST-003' },
   { equipmentId: 'ARRAY-NORTH', plantId: plant.plantId, equipmentType: 'パネル列', manufacturer: 'Jinko Solar', model: 'North Array', serialNumber: 'AR-NORTH' },
 ]
@@ -44,7 +44,7 @@ export const historyRecords: HistoryRecord[] = [
 
 export const priorityItems: InspectionItem[] = [
   { inspectionItemId: 'PRI-01', inspectionId: inspection.inspectionId, equipmentId: 'PCS-COM1-4', type: 'priority', title: 'PCS COM1-4', reason: '前回点検時に同一設備でDCコネクタ接触不良が発生しています。', evidence: ['過去の同一設備故障：2件', '現在出力が他PCS平均より約8%低い', 'アクティブアラーム：なし'], priority: 'high', checks: ['PCS外観', 'エラー表示', 'DC入力', 'DCコネクタ', 'ブレーカ'], requiredPhoto: true, photoTargets: ['PCS正面', '液晶表示'], requiredMeasurement: null, result: null, comment: '' },
-  { inspectionItemId: 'PRI-02', inspectionId: inspection.inspectionId, equipmentId: 'PCS-COM1-4', type: 'priority', title: 'DCコネクタ', reason: '2026/05/18の故障原因がDCコネクタ接触不良でした。変色・緩み・発熱痕を確認します。', evidence: ['MISORA：コネクタ交換履歴', '同型設備の類似故障：1件'], priority: 'high', checks: ['変色', '緩み', '発熱痕'], requiredPhoto: true, photoTargets: ['DC端子部'], requiredMeasurement: null, result: null, comment: '' },
+  { inspectionItemId: 'PRI-02', inspectionId: inspection.inspectionId, equipmentId: 'PCS-COM1-4', type: 'priority', title: 'DCコネクタ', reason: '2026/05/18の故障原因がDCコネクタ接触不良でした。変色・緩み・発熱痕を確認します。', evidence: ['報告書：コネクタ交換履歴', '同型設備の類似故障：1件'], priority: 'high', checks: ['変色', '緩み', '発熱痕'], requiredPhoto: true, photoTargets: ['DC端子部'], requiredMeasurement: null, result: null, comment: '' },
   { inspectionItemId: 'PRI-03', inspectionId: inspection.inspectionId, equipmentId: 'STRING-03', type: 'priority', title: 'DC入力・ストリング3', reason: '直近1か月、ストリング3の電流が他ストリング平均より14%低い傾向です。', evidence: ['現在の監視データ：7.1A', '発電量傾向：30日継続'], priority: 'high', checks: ['DC入力', '配線', '絶縁状態'], requiredPhoto: false, photoTargets: [], requiredMeasurement: { label: 'DC電圧', unit: 'V', reference: '基準 580〜640V' }, result: null, comment: '' },
   { inspectionItemId: 'PRI-04', inspectionId: inspection.inspectionId, equipmentId: 'ARRAY-NORTH', type: 'priority', title: '北側パネル列', reason: '前回点検時に植生接近を確認しています。日陰・ケーブル干渉も合わせて確認します。', evidence: ['前回点検結果：植生接近', '前回写真：2025/08/21'], priority: 'medium', checks: ['植生距離', '日陰', 'ケーブル干渉'], requiredPhoto: true, photoTargets: ['北側パネル列全景', 'PCS周辺'], requiredMeasurement: null, result: null, comment: '' },
 ]
