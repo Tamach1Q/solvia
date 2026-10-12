@@ -172,6 +172,14 @@ await mobile.getByTestId('field-knowledge').waitFor()
 await mobile.getByText('K-106', { exact: true }).waitFor()
 await mobile.screenshot({ path: 'artifacts/11-procedure-step.png', fullPage: true })
 
+// 異常対応の手順リンクを、定期点検の依頼に使い回さない
+await page.getByRole('button', { name: '閉じる' }).click()
+await page.getByTestId('nav-inspection').click()
+await page.getByTestId('open-inspection').click()
+await page.getByTestId('request-field').click()
+await page.getByRole('heading', { name: '現場への点検依頼' }).waitFor()
+await page.getByText('重点点検', { exact: true }).last().waitFor()
+
 // リセットで初期状態に戻る
 await page.getByRole('button', { name: '閉じる' }).click()
 await page.getByTestId('nav-knowledge').click()

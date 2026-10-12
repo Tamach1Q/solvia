@@ -178,8 +178,11 @@ function App() {
     setShareOpen(true)
     setSyncing(true)
     setSyncError('')
-    const token = shareToken || crypto.randomUUID().replaceAll('-', '')
+    // 異常対応の手順を送ったリンクは定期点検に使い回さない
     try {
+      const existing = shareToken ? sharedInspection || await sharedInspectionService.get(shareToken).catch(() => null) : null
+      const reusable = Boolean(shareToken && existing && !existing.items.some(item => item.knowledgeRefs?.length))
+      const token = reusable ? shareToken : crypto.randomUUID().replaceAll('-', '')
       const shared = await sharedInspectionService.create(token, inspection.inspectionId, structuredClone(priorityItems).map(item => ({ ...item, result: null, comment: '' })), { plantName: plant.plantName, address: plant.address, requestTitle: '定期点検' })
       setShareToken(token)
       localStorage.setItem('solvia_inspection_share_token', token)
@@ -280,6 +283,9 @@ function App() {
   const resetDemo = () => {
     setKnowledge(knowledgeService.reset())
     setIncidentPhase(1)
+    setShareToken('')
+    setSharedInspection(null)
+    try { localStorage.removeItem('solvia_inspection_share_token') } catch { /* noop */ }
     showToast('デモの状態をリセットしました')
   }
   const openKnowledge = () => { setView('knowledge'); window.scrollTo(0, 0) }
