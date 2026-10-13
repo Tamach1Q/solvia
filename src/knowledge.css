@@ -196,3 +196,68 @@
 
 /* .next-list span（番号の丸）がナレッジ参照チップに効かないようにする */
 .next-list li .k-refs,.next-list .done .k-refs{width:auto;height:auto;border-radius:0;background:none;display:flex;place-items:initial;font-size:inherit}
+
+/* 確認待ち・承認フロー／発電所名 */
+.k-pending{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;background:#fff1d6;color:#9a6400;font-size:9.5px;font-weight:800}
+.k-pending svg{width:12px}
+.k-plant{margin:0 0 4px!important;color:#2c3a52!important;font-size:11.5px!important;font-weight:700}
+.k-plant svg{width:13px!important;color:#e09a1a}
+.nav-item{position:relative}
+.nav-pending{position:absolute;top:12px;left:30px;width:8px;height:8px;border-radius:50%;background:#f5a524;box-shadow:0 0 0 2px #0f1b2d}
+.k-pending-pill{margin-left:auto;display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:14px;background:#fff1d6;color:#9a6400;font-size:11px}
+.k-pending-pill svg{width:14px}
+.k-done.pending{background:#fff8e6;color:#7a5200}
+.k-field-wait{display:grid;gap:10px}
+.k-field-wait p{margin:0;padding:11px 13px;border-radius:9px;background:var(--blue-soft);color:#2f5596;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
+.k-field-wait p svg{width:16px;flex:0 0 auto}
+.k-field-wait .primary-button{background:#fff;color:#516177;border:1px solid var(--border);box-shadow:none;height:38px;font-size:12px}
+
+/* 統合監視：最近溜まったナレッジ */
+.k-recent{margin-bottom:18px;overflow:hidden}
+.k-recent .ops-section-head h2{display:flex;align-items:center;gap:7px}
+.k-recent .ops-section-head h2 svg{width:17px;color:var(--purple)}
+.k-recent-stats{display:flex;align-items:center;gap:8px}
+.k-plus{padding:4px 9px;border-radius:10px;background:var(--green-soft);color:var(--green);font-size:11px;animation:k-pop .5s ease}
+.k-recent-list{display:grid}
+.k-recent-list>button{padding:13px 22px;border:0;border-top:1px solid var(--border-soft);background:#fff;display:flex;align-items:center;gap:14px;text-align:left;cursor:pointer;transition:background .15s}
+.k-recent-list>button:first-child{border-top:0}
+.k-recent-list>button:hover{background:#faf8ff}
+.k-recent-list>button.is-fresh{background:linear-gradient(90deg,#fffaf0,#fff);box-shadow:inset 4px 0 #f5a524;animation:k-fresh 1.2s ease}
+.k-recent-status{width:76px;flex:0 0 auto}
+.k-recent-status em{font-style:normal;color:#8a96a7;font-size:10.5px}
+.k-recent-list>button>div{flex:1;min-width:0}
+.k-recent-list strong{display:block;color:#1d2840;font-size:13px}
+.k-recent-list small{display:flex;align-items:center;gap:3px;margin-top:3px;color:#7c889a;font-size:10.5px}
+.k-recent-list small svg{width:12px}
+.k-recent-list>button>svg{width:16px;color:#9aa5b3}
+@keyframes k-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes k-fresh{from{background:#ffe9b8}}
+
+/* ナレッジ一覧：確認待ち */
+.k-kpis>div.attention{border-color:#f3c46b;background:#fffaf0}
+.k-pending-section{margin-bottom:18px}
+.k-pending-section>h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:16px}
+.k-pending-section>h2 svg{width:18px;color:#d18a0e}
+.k-pending-section>h2 b{min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:#f5a524;color:#fff;font-size:11px;display:grid;place-items:center}
+.k-pending-section>h2 small{color:var(--muted);font-size:11.5px;font-weight:500}
+.k-review{padding:18px;border:1.5px solid #f3c46b;background:linear-gradient(180deg,#fffcf5,#fff 140px)}
+.k-review+.k-review{margin-top:12px}
+.k-review-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.k-review-head strong{display:flex;align-items:center;gap:5px;color:#1d2840;font-size:14px}
+.k-review-head strong svg{width:15px;color:#e09a1a}
+.k-review-head small{display:block;margin-top:2px;color:#8a96a7;font-size:10.5px}
+.k-source-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.k-source-row span,.k-source-row button{display:flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#4f5d72;font-size:11px;font-weight:700}
+.k-source-row button{cursor:pointer;color:var(--purple);border-color:#ddd2f7;background:#faf8ff}
+.k-source-row svg{width:14px}
+.k-transcript.inline{max-height:none;margin-bottom:12px;padding:12px 14px;border-radius:10px;background:#f7f9fb}
+.k-tree-sub{margin-top:16px!important;padding-top:14px;border-top:1px solid var(--border-soft)}
+
+.k-recent-stats>*{flex:0 0 auto;white-space:nowrap}
+.k-recent .ops-section-head{gap:12px}
+
+/* 現場：未入力は任意（エラー表示にしない） */
+.validation-card.optional .validation-icon{background:#fff1d6;color:#c47f00}
+.validation-card.optional .missing-list>div{border-color:var(--border);background:#fff}
+.validation-card.optional .missing-list svg{color:#c9a04d}
+.validation-card.optional .validation-back{width:100%;margin:10px 0 0}

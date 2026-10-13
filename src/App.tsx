@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle, ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronRight, ClipboardCheck,
   Activity, BookOpen, CloudSun, Copy, Database, ExternalLink, FileText, History, Image, Info, LayoutDashboard, Link2, MapPin, Menu, Monitor, Pencil,
@@ -10,8 +10,8 @@ import { fusionSolarService } from './services/fusionSolarService'
 import { misoraService } from './services/misoraService'
 import { IncidentCase, MonitoringDashboard } from './Operations'
 import { KnowledgeBase } from './Knowledge'
-import { fieldProcedure } from './data/knowledgeData'
-import { knowledgeService } from './services/knowledgeService'
+import { extractedDraft, fieldProcedure } from './data/knowledgeData'
+import { isPublished, knowledgeService } from './services/knowledgeService'
 import { sharedInspectionService, type SharedInspection } from './services/sharedInspectionService'
 import type { HistoryRecord, InspectionItem, KnowledgeCard, InspectionPhoto, InspectionResult, InspectionStatus, MonitoringSnapshot } from './types'
 
@@ -40,6 +40,9 @@ function App() {
   const [toast, setToast] = useState('')
   const [incidentPhase, setIncidentPhase] = useState(1)
   const [knowledge, setKnowledge] = useState<KnowledgeCard[]>(() => knowledgeService.list())
+  const [knowledgeFocus, setKnowledgeFocus] = useState<string | undefined>()
+  const [extracting, setExtracting] = useState(false)
+  const extractingRef = useRef(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareToken, setShareToken] = useState(() => localStorage.getItem('solvia_inspection_share_token') || '')
   const [sharedInspection, setSharedInspection] = useState<SharedInspection | null>(null)
@@ -78,6 +81,23 @@ function App() {
     }, 5000)
     return () => window.clearInterval(timer)
   }, [shareOpen, shareToken, fieldToken])
+
+  const sharedIsProcedure = Boolean(sharedInspection?.items.some(item => item.knowledgeRefs?.length))
+  useEffect(() => {
+    if (fieldToken || shareOpen || !shareToken || !sharedIsProcedure || sharedInspection?.status === 'submitted') return
+    const timer = window.setInterval(() => {
+      void sharedInspectionService.get(shareToken).then(setSharedInspection).catch(() => undefined)
+    }, 4000)
+    return () => window.clearInterval(timer)
+  }, [fieldToken, shareOpen, shareToken, sharedIsProcedure, sharedInspection?.status])
+
+  // 担当者のiPadから提出されたら、案件を完了まで進めてナレッジを「確認待ち」に自動登録する
+  useEffect(() => {
+    if (fieldToken || !sharedIsProcedure || sharedInspection?.status !== 'submitted' || incidentPhase < 2 || incidentPhase >= 6) return
+    setIncidentPhase(6)
+    showToast('担当者のiPadから作業結果が届きました。案件を完了しました')
+    void registerCaseKnowledge({ items: sharedInspection.items, measurements: sharedInspection.measurements, photos: sharedInspection.photos.length })
+  }, [fieldToken, sharedIsProcedure, sharedInspection, incidentPhase])
 
   const showToast = (message: string) => {
     setToast(message)
@@ -154,7 +174,6 @@ function App() {
   }
 
   const recheck = () => {
-    if (missingItems.length) return
     const complete = async () => {
       if (fieldToken) {
         setSyncing(true)
@@ -276,19 +295,38 @@ function App() {
     finally { setSyncing(false) }
   }
 
-  const publishKnowledge = (card: KnowledgeCard) => {
-    setKnowledge(knowledgeService.publish(card))
-    showToast('ナレッジに公開しました（全拠点に共有）')
+  const registerCaseKnowledge = async (field: { items: InspectionItem[]; measurements: Record<string, string>; photos: number } | null) => {
+    if (extractingRef.current || knowledge.some(card => card.id === extractedDraft.id)) return
+    extractingRef.current = true
+    setExtracting(true)
+    try {
+      const draft = await knowledgeService.draftFromCase(field)
+      setKnowledge(knowledgeService.addPending(draft))
+      showToast(`ナレッジ ${draft.id} を確認待ちに登録しました`)
+    } finally {
+      extractingRef.current = false
+      setExtracting(false)
+    }
+  }
+  const approveKnowledge = (card: KnowledgeCard) => {
+    setKnowledge(knowledgeService.approve(card))
+    setKnowledgeFocus(card.id)
+    showToast(`${card.id} を承認しました（全拠点に公開）`)
+  }
+  const closeIncident = () => {
+    setIncidentPhase(6)
+    void registerCaseKnowledge(null)
   }
   const resetDemo = () => {
     setKnowledge(knowledgeService.reset())
     setIncidentPhase(1)
     setShareToken('')
     setSharedInspection(null)
+    setKnowledgeFocus(undefined)
     try { localStorage.removeItem('solvia_inspection_share_token') } catch { /* noop */ }
     showToast('デモの状態をリセットしました')
   }
-  const openKnowledge = () => { setView('knowledge'); window.scrollTo(0, 0) }
+  const openKnowledge = (id?: string) => { setKnowledgeFocus(id); setView('knowledge'); window.scrollTo(0, 0) }
   const registerReport = async () => {
     await misoraService.saveReportDraft(inspection.inspectionId)
     setReportRegistered(true)
@@ -306,14 +344,14 @@ function App() {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><span className="brand-mark"><Sun size={21} /></span><div>SOLVIA<small>O&amp;M WORKSPACE</small></div></div>
-      <nav><span className="nav-label">運用管理</span><button className={`nav-item ${view === 'monitoring' || view === 'incident' ? 'active' : ''}`} onClick={() => setView('monitoring')} data-testid="nav-monitoring"><Activity size={19} />統合監視</button><button className={`nav-item ${view === 'knowledge' ? 'active' : ''}`} onClick={openKnowledge} data-testid="nav-knowledge"><BookOpen size={19} />ナレッジ<b className="nav-count">{knowledge.length}</b></button><span className="nav-label nav-label-spaced">点検業務</span><button className={`nav-item ${['list', 'detail', 'photo-review', 'report'].includes(view) ? 'active' : ''}`} onClick={() => setView('list')} data-testid="nav-inspection"><ClipboardCheck size={19} />点検予定</button><div className="flow-guide"><span>業務が一つにつながる</span>{['監視・異常対応', '現地作業・復旧', 'ナレッジとして蓄積', '点検前の準備', '現場で入力・撮影', '報告書を生成'].map((text, index) => <div key={text}><i>{index + 1}</i>{text}</div>)}</div></nav>
+      <nav><span className="nav-label">運用管理</span><button className={`nav-item ${view === 'monitoring' || view === 'incident' ? 'active' : ''}`} onClick={() => setView('monitoring')} data-testid="nav-monitoring"><Activity size={19} />統合監視</button><button className={`nav-item ${view === 'knowledge' ? 'active' : ''}`} onClick={() => openKnowledge()} data-testid="nav-knowledge"><BookOpen size={19} />ナレッジ<b className="nav-count">{knowledge.filter(isPublished).length}</b>{knowledge.some(card => card.status === '確認待ち') && <i className="nav-pending" title="確認待ちあり" />}</button><span className="nav-label nav-label-spaced">点検業務</span><button className={`nav-item ${['list', 'detail', 'photo-review', 'report'].includes(view) ? 'active' : ''}`} onClick={() => setView('list')} data-testid="nav-inspection"><ClipboardCheck size={19} />点検予定</button><div className="flow-guide"><span>業務が一つにつながる</span>{['監視・異常対応', '現地作業・復旧', 'ナレッジとして蓄積', '点検前の準備', '現場で入力・撮影', '報告書を生成'].map((text, index) => <div key={text}><i>{index + 1}</i>{text}</div>)}</div></nav>
       <div className="sidebar-bottom"><div className="source-state"><span><i />監視データ</span><strong>モック</strong></div><div className="source-state"><span><i />報告書・CRM</span><strong>モック</strong></div></div>
     </aside>
     <main className="main">
       <header className="topbar"><div><button className="icon-button"><Menu size={19} /></button><span>O&amp;M統合管理</span><ChevronRight size={15} /><strong>{{ monitoring: '統合監視', incident: '異常案件', knowledge: 'ナレッジ', list: '点検予定', detail: '点検前確認', 'photo-review': '現場写真確認', report: '報告書ドラフト' }[view]}</strong></div><div><span className="demo-pill">デモデータ</span><span className="date"><CloudSun size={17} />2026年9月9日（水）</span><span className="user"><i>田</i>田中 誠</span></div></header>
-      {view === 'monitoring' && <MonitoringDashboard phase={incidentPhase} onIncident={() => setView('incident')} />}
-      {view === 'knowledge' && <KnowledgeBase key={knowledge.length} cards={knowledge} onReset={resetDemo} />}
-      {view === 'incident' && <IncidentCase phase={incidentPhase} knowledge={knowledge} onPublish={publishKnowledge} onOpenKnowledge={openKnowledge} onBack={() => setView('monitoring')} onInspectionRequest={requestIncidentInspection} onRestart={() => setIncidentPhase(2)} onWork={() => setIncidentPhase(5)} onClose={() => setIncidentPhase(6)} />}
+      {view === 'monitoring' && <MonitoringDashboard phase={incidentPhase} knowledge={knowledge} onOpenKnowledge={openKnowledge} onIncident={() => setView('incident')} />}
+      {view === 'knowledge' && <KnowledgeBase key={`${knowledgeFocus}-${knowledge.map(card => card.id + card.status).join()}`} cards={knowledge} focusId={knowledgeFocus} onApprove={approveKnowledge} onReset={resetDemo} />}
+      {view === 'incident' && <IncidentCase phase={incidentPhase} knowledge={knowledge} knowledgeState={extracting ? 'extracting' : knowledge.some(card => card.id === extractedDraft.id) ? (isPublished(knowledge.find(card => card.id === extractedDraft.id)!) ? 'published' : 'pending') : 'none'} fieldStatus={sharedIsProcedure ? sharedInspection?.status : undefined} onOpenKnowledge={openKnowledge} onBack={() => setView('monitoring')} onInspectionRequest={requestIncidentInspection} onRestart={() => setIncidentPhase(2)} onWork={() => setIncidentPhase(5)} onClose={closeIncident} />}
       {view === 'list' && <InspectionList status={status} onOpen={() => openDetail()} />}
       {view === 'detail' && <InspectionDetail tab={detailTab} setTab={setDetailTab} plan={plan} onBack={() => setView('list')} onRequest={requestFieldInspection} requested={Boolean(shareToken)} />}
       {view === 'photo-review' && <PhotoReviewScreen photos={reportPhotos} includedIds={includedPhotoIds} syncing={syncing} error={syncError} onIncludedChange={setIncludedPhotoIds} onReplace={replaceReportPhoto} onBack={() => { setView('detail'); if (shareToken) setShareOpen(true) }} onConfirm={openReportEditor} />}
@@ -427,7 +465,7 @@ function FieldItemV2(props: FieldShellProps) {
     <div className="mobile-nav"><button onClick={props.onBack}><X />中断</button><strong>{props.procedure ? '切り分け手順' : '重点点検'}</strong><span>{props.fieldIndex + 1} / {props.items.length}</span></div>
     <div className="mobile-progress"><i style={{ width: `${((props.fieldIndex + 1) / props.items.length) * 100}%` }} /></div>
     <div className="field-context"><span className={`priority-label ${item.priority}`}>重要度：{item.priority === 'high' ? '高' : '中'}</span><h1>{item.title}</h1><p><Info />{item.reason}</p></div>
-    {item.knowledgeRefs?.length ? <div className="field-knowledge" data-testid="field-knowledge"><h2><BookOpen />ナレッジより</h2>{item.knowledgeRefs.map(entry => <div key={entry.id}><b>{entry.id}</b><span><strong>{entry.label}</strong><small>{entry.base}の事例</small></span></div>)}{item.knowledgeTip && <p><Sparkles />{item.knowledgeTip}</p>}</div> : null}
+    {item.knowledgeRefs?.length ? <div className="field-knowledge" data-testid="field-knowledge"><h2><BookOpen />ナレッジより</h2>{item.knowledgeRefs.map(entry => <div key={entry.id}><b>{entry.id}</b><span><strong>{entry.label}</strong><small>{entry.plant}・{entry.base}の事例</small></span></div>)}{item.knowledgeTip && <p><Sparkles />{item.knowledgeTip}</p>}</div> : null}
     <div className="field-section"><h2>確認項目</h2><div className="check-chips">{item.checks.map(check => <span key={check}><Check />{check}</span>)}</div></div>
     <div className="field-section"><h2>判定</h2><div className="result-buttons">{(['正常', '異常', '判断不能'] as InspectionResult[]).map(result => <button key={result} className={item.result === result ? `selected ${result === '異常' ? 'abnormal' : ''}` : ''} onClick={() => props.onUpdateItem(item.inspectionItemId, { result })}>{result === '正常' ? '○' : result === '異常' ? '!' : '?'}<span>{result}</span></button>)}</div></div>
     {item.requiredMeasurement && <div className="field-section measurement"><h2>測定値</h2><label><span>{item.requiredMeasurement.label}</span><div><input type="number" inputMode="decimal" placeholder="数値" value={props.measurements[item.inspectionItemId] || ''} onChange={event => props.setMeasurements(current => ({ ...current, [item.inspectionItemId]: event.target.value }))} data-testid="measurement-input" /><b>{item.requiredMeasurement.unit}</b></div><small>{item.requiredMeasurement.reference}</small></label></div>}
@@ -442,10 +480,10 @@ function FieldItemV2(props: FieldShellProps) {
 
 function Validation({ procedure, missing, standardDone, shared, syncing, onCompleteStandard, onFill, onRecheck, onBack }: { procedure: boolean; missing: { title: string; reason: string }[]; standardDone: boolean; shared: boolean; syncing: boolean; onCompleteStandard: () => void; onFill: () => void; onRecheck: () => void; onBack: () => void }) {
   const ready = missing.length === 0
-  return <section className="mobile-card validation-card" data-testid="validation-screen"><div className={ready ? 'validation-icon ready' : 'validation-icon'}>{ready ? <CheckCircle2 /> : <AlertCircle />}</div><span className="today-label">入力漏れチェック</span><h1>{ready ? '必要な入力が揃いました' : '入力内容を確認してください'}</h1><p>{ready ? '点検結果を管理側へ提出できます。' : `未完了 ${missing.length}件`}</p>{!ready && <div className="missing-list">{missing.slice(0, 4).map(entry => <div key={entry.title}><AlertCircle /><span><strong>{entry.title}</strong><small>{entry.reason}</small></span></div>)}</div>}{!standardDone && !procedure && <div className="standard-validation-action"><ClipboardCheck /><span><strong>通常点検24件</strong><small>実施済みであれば、ここで完了として記録できます。</small></span><button onClick={onCompleteStandard} data-testid="complete-standard">24件を完了として記録</button></div>}{!ready && missing.length > 4 && <p className="more-missing">ほか {missing.length - 4}件</p>}{procedure ? <div className="reason-note"><BookOpen /><span><strong>ナレッジを踏まえた確認</strong>冷却系が原因の場合、再起動直後は戻っても再停止します。処置後30分の出力を記録してから提出してください。</span></div> : <div className="reason-note"><Sparkles /><span><strong>履歴を踏まえた確認</strong>過去にDC系統の故障があるため、DC端子部の撮影とDC電圧の記録を推奨します。</span></div>}{ready ? <button className="mobile-primary" disabled={syncing} onClick={onRecheck} data-testid="confirm-complete">{shared ? '管理側へ点検結果を提出' : '点検結果を確定する'}</button> : shared ? <button className="mobile-secondary validation-back" onClick={onBack}>重点点検の入力へ戻る</button> : <button className="mobile-primary" onClick={onFill} data-testid="fill-missing">不足項目をデモ入力</button>}</section>
+  return <section className={`mobile-card validation-card ${ready ? '' : 'optional'}`} data-testid="validation-screen"><div className={ready ? 'validation-icon ready' : 'validation-icon'}>{ready ? <CheckCircle2 /> : <AlertCircle />}</div><span className="today-label">入力漏れチェック</span><h1>{ready ? '必要な入力が揃いました' : '未入力の項目があります'}</h1><p>{ready ? '点検結果を管理側へ提出できます。' : `未入力 ${missing.length}件（任意）。このまま提出することもできます。`}</p>{!ready && <div className="missing-list">{missing.slice(0, 4).map(entry => <div key={entry.title}><AlertCircle /><span><strong>{entry.title}</strong><small>{entry.reason}</small></span></div>)}</div>}{!standardDone && !procedure && <div className="standard-validation-action"><ClipboardCheck /><span><strong>通常点検24件</strong><small>実施済みであれば、ここで完了として記録できます。</small></span><button onClick={onCompleteStandard} data-testid="complete-standard">24件を完了として記録</button></div>}{!ready && missing.length > 4 && <p className="more-missing">ほか {missing.length - 4}件</p>}{procedure ? <div className="reason-note"><BookOpen /><span><strong>ナレッジを踏まえた確認</strong>冷却系が原因の場合、再起動直後は戻っても再停止します。処置後30分の出力を記録してから提出してください。</span></div> : <div className="reason-note"><Sparkles /><span><strong>履歴を踏まえた確認</strong>過去にDC系統の故障があるため、DC端子部の撮影とDC電圧の記録を推奨します。</span></div>}<button className="mobile-primary" disabled={syncing} onClick={onRecheck} data-testid="confirm-complete">{ready ? (shared ? '管理側へ点検結果を提出' : '点検結果を確定する') : (shared ? '未入力のまま提出する' : '未入力のまま確定する')}</button>{!ready && (shared ? <button className="mobile-secondary validation-back" onClick={onBack}>入力に戻る</button> : <button className="mobile-secondary validation-back" onClick={onFill} data-testid="fill-missing">不足項目をデモ入力</button>)}</section>
 }
 
-function CompleteScreen({ items, procedure, plantName, photos, shared, onReset, onReport }: { items: InspectionItem[]; procedure: boolean; plantName: string; photos: InspectionPhoto[]; shared: boolean; onReset: () => void; onReport: () => void }) { return <section className="mobile-card complete-card" data-testid="complete-screen"><div className="complete-mark"><CheckCircle2 /></div><span className="today-label">{shared ? '管理側へ提出済み' : '点検入力完了'}</span><h1>お疲れさまでした</h1><p>{plantName}</p>{procedure ? <><div className="result-summary"><div><small>切り分け手順</small><strong>{items.filter(item => item.result).length} / {items.length}</strong><span>完了</span></div><div className="danger"><small>異常</small><strong>{items.filter(item => item.result === '異常').length}</strong><span>件</span></div><div><small>撮影写真</small><strong>{photos.length}</strong><span>枚</span></div></div><div className="found-issues"><h2>確認された異常</h2>{items.filter(item => item.result === '異常').map((item, index) => <div key={item.inspectionItemId}><span>{index + 1}</span><p><strong>{item.title}</strong>{item.comment || 'コメントなし'}</p></div>)}</div><div className="field-knowledge-notice"><BookOpen /><div><strong>この対応はナレッジになります</strong><span>入力内容と通話記録から、管理側でAIが手順を抽出します。追加の記入は不要です。</span></div></div></> : <><div className="result-summary"><div><small>通常点検</small><strong>24 / 24</strong><span>完了</span></div><div><small>重点点検</small><strong>4 / 4</strong><span>完了</span></div><div className="danger"><small>異常</small><strong>2</strong><span>件</span></div><div><small>撮影写真</small><strong>{photos.length}</strong><span>枚</span></div><div><small>測定</small><strong>1</strong><span>項目</span></div></div><div className="found-issues"><h2>今回確認された異常</h2><div><span>1</span><p><strong>PCS COM1-4</strong>DCコネクタ変色あり</p></div><div><span>2</span><p><strong>北側パネル列</strong>植生接近あり</p></div></div></>}{shared ? <><div className="submitted-notice"><CheckCircle2 />入力結果と写真を管理側へ送信しました</div><button className="redo-inspection" onClick={onReset} data-testid="redo-field-inspection"><RefreshCcw />入力・写真をリセットしてやり直す</button></> : <button className="mobile-primary" onClick={onReport} data-testid="generate-report"><FileText />報告書ドラフトを生成</button>}</section> }
+function CompleteScreen({ items, procedure, plantName, photos, shared, onReset, onReport }: { items: InspectionItem[]; procedure: boolean; plantName: string; photos: InspectionPhoto[]; shared: boolean; onReset: () => void; onReport: () => void }) { return <section className="mobile-card complete-card" data-testid="complete-screen"><div className="complete-mark"><CheckCircle2 /></div><span className="today-label">{shared ? '管理側へ提出済み' : '点検入力完了'}</span><h1>お疲れさまでした</h1><p>{plantName}</p>{procedure ? <><div className="result-summary"><div><small>切り分け手順</small><strong>{items.filter(item => item.result).length} / {items.length}</strong><span>完了</span></div><div className="danger"><small>異常</small><strong>{items.filter(item => item.result === '異常').length}</strong><span>件</span></div><div><small>撮影写真</small><strong>{photos.length}</strong><span>枚</span></div></div><div className="found-issues"><h2>確認された異常</h2>{items.filter(item => item.result === '異常').map((item, index) => <div key={item.inspectionItemId}><span>{index + 1}</span><p><strong>{item.title}</strong>{item.comment || 'コメントなし'}</p></div>)}</div><div className="field-knowledge-notice"><BookOpen /><div><strong>この対応はナレッジとして登録されます</strong><span>入力内容と通話記録からAIが自動で下書きし、管理者の確認後に全拠点へ公開されます。追加の記入は不要です。</span></div></div></> : <><div className="result-summary"><div><small>通常点検</small><strong>24 / 24</strong><span>完了</span></div><div><small>重点点検</small><strong>4 / 4</strong><span>完了</span></div><div className="danger"><small>異常</small><strong>2</strong><span>件</span></div><div><small>撮影写真</small><strong>{photos.length}</strong><span>枚</span></div><div><small>測定</small><strong>1</strong><span>項目</span></div></div><div className="found-issues"><h2>今回確認された異常</h2><div><span>1</span><p><strong>PCS COM1-4</strong>DCコネクタ変色あり</p></div><div><span>2</span><p><strong>北側パネル列</strong>植生接近あり</p></div></div></>}{shared ? <><div className="submitted-notice"><CheckCircle2 />入力結果と写真を管理側へ送信しました</div><button className="redo-inspection" onClick={onReset} data-testid="redo-field-inspection"><RefreshCcw />入力・写真をリセットしてやり直す</button></> : <button className="mobile-primary" onClick={onReport} data-testid="generate-report"><FileText />報告書ドラフトを生成</button>}</section> }
 
 function PhotoReviewScreen({ photos, includedIds, syncing, error, onIncludedChange, onReplace, onBack, onConfirm }: { photos: InspectionPhoto[]; includedIds: string[]; syncing: boolean; error: string; onIncludedChange: React.Dispatch<React.SetStateAction<string[]>>; onReplace: (photo: InspectionPhoto, file: File) => void; onBack: () => void; onConfirm: () => void }) {
   return <div className="page photo-review-page" data-testid="photo-review-screen">

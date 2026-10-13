@@ -96,9 +96,10 @@ export interface KnowledgeRef {
   id: string
   label: string
   base: string
+  plant: string
 }
 
-export type KnowledgeSourceKind = 'ヘルプデスク通話' | '駆けつけレポート' | '点検報告書' | '社内CRM'
+export type KnowledgeSourceKind = '現場入力（iPad）' | 'ヘルプデスク通話' | '駆けつけレポート' | '点検報告書' | '社内CRM'
 
 export interface KnowledgeCard {
   id: string
@@ -116,10 +117,14 @@ export interface KnowledgeCard {
   bring: string[]
   dispatch: '現地対応' | '遠隔で解決' | '出動不要'
   sources: { kind: KnowledgeSourceKind; caseId: string }[]
+  plant: string
+  equipmentLabel: string
   base: string
   author: string
   usedCount: number
   updatedAt: string
   newInsight?: string
   isNew?: boolean
+  status?: '確認待ち' | '公開'
+  fieldSummary?: { items: number; answered: number; abnormal: number; photos: number }
 }

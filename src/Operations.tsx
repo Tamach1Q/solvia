@@ -5,8 +5,8 @@ import {
   Wrench, X, Zap,
 } from 'lucide-react'
 import { extractedDraft, fieldProcedure, incidentQuery, remoteSteps } from './data/knowledgeData'
-import { KnowledgeCapture, KnowledgeDrawer } from './Knowledge'
-import { causeBreakdown, knowledgeService } from './services/knowledgeService'
+import { KnowledgeCaseStatus, KnowledgeDrawer, RecentKnowledge } from './Knowledge'
+import { causeBreakdown, isPublished, knowledgeService } from './services/knowledgeService'
 import type { KnowledgeCard } from './types'
 
 const plants = [
@@ -17,22 +17,23 @@ const plants = [
   { name: '千葉いすみ発電所', area: '千葉県いすみ市', system: 'SmartLogger', output: '1,020 / 1,180 kW', alert: 'ストリング出力低下', status: '要対応', tone: 'red' },
 ]
 
-export function MonitoringDashboard({ phase, onIncident }: { phase: number; onIncident: () => void }) {
+export function MonitoringDashboard({ phase, knowledge, onIncident, onOpenKnowledge }: { phase: number; knowledge: KnowledgeCard[]; onIncident: () => void; onOpenKnowledge: (id?: string) => void }) {
   return <div className="page operations-page" data-testid="monitoring-dashboard"><div className="page-heading"><div><p className="eyebrow">PORTFOLIO MONITORING</p><h1>統合監視</h1><p>複数の監視システムを横断し、異常後の対応業務までつなぎます。</p></div><span className="sync-time"><RefreshCcw />最終同期 10:42</span></div>
     <div className="ops-kpis"><OpsKpi label="要対応" value={phase >= 6 ? '2' : '3'} icon={<AlertTriangle />} tone="red" /><OpsKpi label="要確認" value="2" icon={<AlertCircle />} tone="amber" /><OpsKpi label="修繕対応中" value={phase >= 2 && phase < 6 ? '2' : '1'} icon={<Wrench />} tone="blue" /><OpsKpi label="正常稼働" value="12 / 18" icon={<Activity />} tone="green" /></div>
     <section className="ops-flow"><div><Zap /><span><strong>異常を見つけて終わらない</strong>原因確認・現地対応・修繕・復旧まで一つの案件で追跡</span></div>{['監視', '原因確認', '遠隔対応', '現地判断', '修繕', '復旧'].map((step, index) => <span key={step}><i>{index + 1}</i>{step}{index < 5 && <ChevronRight />}</span>)}</section>
+    <RecentKnowledge cards={knowledge} onOpen={onOpenKnowledge} />
     <section className="panel ops-table"><div className="ops-section-head"><div><h2>発電所一覧</h2><p>18発電所・4監視システムを横断</p></div><span className="mock-label">監視データ：モック</span></div><table><thead><tr><th>発電所</th><th>監視システム</th><th>状態</th><th>現在出力 / 容量</th><th>最新アラーム</th><th>連携</th></tr></thead><tbody>{plants.map((plant, index) => <tr key={plant.name} className={index === 0 ? 'priority-row' : ''} onClick={index === 0 ? onIncident : undefined} data-testid={index === 0 ? 'monitoring-incident-row' : undefined}><td><div className="ops-plant"><span><Sun /></span><div><strong>{plant.name}</strong><small><MapPin />{plant.area}</small></div></div></td><td><span className="system-badge"><i />{plant.system}</span></td><td><span className={`ops-status ${plant.tone}`}><i />{index === 0 && phase >= 6 ? '正常' : plant.status}</span></td><td><strong>{index === 0 && phase >= 6 ? '1,118 / 1,240 kW' : plant.output}</strong></td><td><span className={plant.tone === 'red' ? 'red-text' : ''}>{index === 0 && phase >= 6 ? 'PCS-03 復旧済み' : plant.alert}</span><small className="updated">更新 {index + 1}分前</small></td><td><div className="ops-links"><a href="https://jp5.fusionsolar.huawei.com/pvmswebsite/assets/build/index.html#/home/list" target="_blank" rel="noreferrer" onClick={event => event.stopPropagation()}><ExternalLink />監視画面</a><a className="misora" href="https://test.facilities.green-energy.se-misora.com/event/eventList" target="_blank" rel="noreferrer" onClick={event => event.stopPropagation()}><PencilLine />報告書・CRM</a></div></td></tr>)}</tbody></table></section>
   </div>
 }
 
 function OpsKpi({ label, value, icon, tone }: { label: string; value: string; icon: React.ReactNode; tone: string }) { return <div className={`ops-kpi ${tone}`}><div><span>{label}</span><strong>{value}<small>件</small></strong></div><i>{icon}</i></div> }
 
-export function IncidentCase({ phase, knowledge, onBack, onInspectionRequest, onRestart, onWork, onClose, onPublish, onOpenKnowledge }: { phase: number; knowledge: KnowledgeCard[]; onBack: () => void; onInspectionRequest: () => void; onRestart: () => void; onWork: () => void; onClose: () => void; onPublish: (card: KnowledgeCard) => void; onOpenKnowledge: () => void }) {
+export function IncidentCase({ phase, knowledge, knowledgeState, fieldStatus, onBack, onInspectionRequest, onRestart, onWork, onClose, onOpenKnowledge }: { phase: number; knowledge: KnowledgeCard[]; knowledgeState: 'none' | 'extracting' | 'pending' | 'published'; fieldStatus?: string; onBack: () => void; onInspectionRequest: () => void; onRestart: () => void; onWork: () => void; onClose: () => void; onOpenKnowledge: (id?: string) => void }) {
   const steps = ['異常検知', '原因確認', '遠隔対応', '現地対応決定', '現地作業', '復旧確認', '完了']
   const current = phase >= 6 ? 7 : phase >= 5 ? 6 : phase >= 2 ? 4 : 2
   const matched = useMemo(() => knowledgeService.match(knowledge, incidentQuery).filter(card => card.id !== extractedDraft.id), [knowledge])
   const causes = causeBreakdown(matched)
-  const published = knowledge.some(card => card.id === extractedDraft.id)
+  const caseCard = knowledge.find(card => card.id === extractedDraft.id)
   const [drawer, setDrawer] = useState<{ open: boolean; focusId?: string }>({ open: false })
   const openCase = (focusId?: string) => setDrawer({ open: true, focusId })
   const Refs = ({ ids }: { ids: string[] }) => <span className="k-refs">{ids.map(id => <button key={id} onClick={() => openCase(id)}>{id}</button>)}</span>
@@ -42,10 +43,10 @@ export function IncidentCase({ phase, knowledge, onBack, onInspectionRequest, on
       <button className="k-match-strip" onClick={() => openCase()} data-testid="knowledge-match"><span><BookOpen /></span><div><small>ナレッジ照合</small><strong>同型PCS × 内部温度異常：<em>{matched.length}件</em>の事例がヒット</strong><p>{[...new Set(matched.map(card => card.base))].join('・')}の知見から、原因候補と切り分け手順を組み立てました</p></div><b>事例を見る<ChevronRight /></b></button>
       <div className="incident-two"><section className="panel case-panel"><OpsTitle icon={<Sparkles />} title="原因候補" note={`ナレッジ${matched.length}件の内訳から算出`} /><div className="causes">{causes.map((cause, index) => <div key={cause.label}><span>{index + 1}</span><strong>{cause.label}<Refs ids={cause.ids} /></strong><b>{cause.count}件</b><i><em style={{ width: `${cause.percent}%` }} /></i></div>)}</div><div className="past-case"><History /><span><strong>最も近い事例（活用14回）</strong>K-101 九州拠点：再起動で一時復旧→再停止なら冷却ファン</span></div></section><section className="panel case-panel"><OpsTitle icon={<ShieldCheck />} title="切り分け手順" note="ナレッジから組み立て（遠隔 → 現地）" /><ol className="next-list k-procedure">{remoteSteps.map((step, index) => { const done = index === 0 || phase >= 2; return <li className={done ? 'done' : ''} key={step.title}><span>{done ? <Check /> : index + 1}</span><div><strong>{step.title}<em className="k-where">遠隔</em></strong><small>{index === 1 && phase >= 2 ? '一時復旧 → 22分後に再停止。K-101のパターンに一致' : step.note}</small><Refs ids={step.refs} /></div></li> })}{fieldProcedure.map((item, index) => <li className={phase >= 5 ? 'done' : ''} key={item.inspectionItemId}><span>{phase >= 5 ? <Check /> : index + 3}</span><div><strong>{item.title}<em className="k-where field">現地</em></strong><Refs ids={(item.knowledgeRefs || []).map(entry => entry.id)} /></div></li>)}</ol>{phase < 2 ? <button className="primary-button full" onClick={onRestart} data-testid="restart-ops"><RefreshCcw />遠隔再起動を実施</button> : <div className="restart-failed"><AlertCircle /><span><strong>一時復旧したが22分後に再停止</strong>冷却系の可能性が高く、現地対応が必要と判定しました。</span></div>}</section></div>
       {phase >= 2 && <section className="decision-card"><div><AlertTriangle /><span><small>対応判定</small><h2>現地対応：必要</h2></span><b>優先度 高</b></div><div className="decision-details"><div><small>対応期限</small><strong>本日16:00</strong></div><div><small>想定作業</small><strong>60分</strong></div><div><small>担当</small><strong>東北拠点 佐藤</strong></div><div><small>持参品（ナレッジより）</small><strong>交換用冷却ファン・フィルタ</strong></div></div><p><strong>なぜ必要か：</strong>再起動で再停止・日射十分・他PCS正常。類似事例{matched.length}件中{matched.filter(card => card.causeGroup !== '温度センサ・基板').length}件が冷却系で、現地での清掃・部品交換が必要でした。</p>{phase < 5 && <button className="k-send" onClick={onInspectionRequest}><Send />切り分け手順を担当者のiPadへ送る</button>}</section>}
-      {phase >= 2 && <section className="panel case-panel repair-result"><OpsTitle icon={<Wrench />} title={phase >= 5 ? '現地作業結果' : '現地作業'} note="駆けつけレポート（モック）" />{phase < 5 ? <button className="primary-button" onClick={onWork} data-testid="work-complete-ops">現地作業完了</button> : <div className="repair-summary"><CheckCircle2 /><span><strong>冷却ファン交換（軸受摩耗）・PCS正常稼働</strong>発電量 0kW → 47.8kW</span>{phase < 6 ? <button className="success-button" onClick={onClose} data-testid="close-ops">復旧を確認して完了</button> : <b>案件完了</b>}</div>}</section>}
-      {phase >= 6 && <KnowledgeCapture published={published} onPublish={onPublish} onOpenBase={onOpenKnowledge} />}
+      {phase >= 2 && <section className="panel case-panel repair-result"><OpsTitle icon={<Wrench />} title={phase >= 5 ? '現地作業結果' : '現地作業'} note="駆けつけレポート（モック）" />{phase < 5 ? <div className="k-field-wait"><p><Send />{fieldStatus === 'in_progress' ? '担当者がiPadで入力中です。提出されると自動で完了まで進みます。' : fieldStatus === 'requested' ? '担当者のiPadへ手順を送りました。提出されると自動で完了まで進みます。' : '担当者のiPadから提出されると、自動で完了まで進みます。'}</p><button className="primary-button" onClick={onWork} data-testid="work-complete-ops">現地作業完了（手動）</button></div> : <div className="repair-summary"><CheckCircle2 /><span><strong>冷却ファン交換（軸受摩耗）・PCS正常稼働</strong>発電量 0kW → 47.8kW</span>{phase < 6 ? <button className="success-button" onClick={onClose} data-testid="close-ops">復旧を確認して完了</button> : <b>案件完了</b>}</div>}</section>}
+      {phase >= 6 && knowledgeState !== 'none' && <KnowledgeCaseStatus state={knowledgeState} card={caseCard} onOpen={onOpenKnowledge} />}
     </div>
-    {drawer.open && <KnowledgeDrawer cards={[...knowledge.filter(card => card.id === extractedDraft.id), ...matched]} focusId={drawer.focusId} onClose={() => setDrawer({ open: false })} onOpenBase={() => { setDrawer({ open: false }); onOpenKnowledge() }} />}
+    {drawer.open && <KnowledgeDrawer cards={[...knowledge.filter(card => card.id === extractedDraft.id && isPublished(card)), ...matched]} focusId={drawer.focusId} onClose={() => setDrawer({ open: false })} onOpenBase={() => { setDrawer({ open: false }); onOpenKnowledge() }} />}
   </div>
 }
 

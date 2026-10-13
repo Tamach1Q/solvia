@@ -3,7 +3,7 @@ import type { InspectionItem, KnowledgeCard } from '../types'
 // DEMO MOCK DATA: 事例はすべて架空です。メーカー名・アラームコードは意図的に伏せています。
 export const knowledgeCards: KnowledgeCard[] = [
   {
-    id: 'K-101', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
+    id: 'K-101', plant: '熊本芦北発電所', equipmentLabel: 'PCS-02', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
     title: '再起動で一時復旧→再停止するなら冷却ファンを最優先で確認',
     symptom: '内部温度異常で停止。遠隔再起動で一時的に復旧するが、20〜30分で再停止する。',
     steps: ['監視で停止前の内部温度の推移を確認', '遠隔再起動し、再停止までの時間を記録', '現地で冷却ファンの回転・異音を確認', 'ファン交換後、30分間 出力と内部温度を確認'],
@@ -14,7 +14,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '九州拠点', author: '山下', usedCount: 14, updatedAt: '2026/08/12',
   },
   {
-    id: 'K-102', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '吸排気の閉塞',
+    id: 'K-102', plant: '千葉いすみ発電所', equipmentLabel: 'PCS-05', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '吸排気の閉塞',
     title: '吸気フィルタの目詰まりで温度上昇。清掃のみで復旧',
     symptom: '日中の高負荷時間帯だけ内部温度異常で停止する。夕方には自然復旧する。',
     steps: ['停止が日中の高負荷時間帯に集中しているか確認', '現地で吸気フィルタの汚れを確認', 'フィルタ清掃後、ピーク時間帯の内部温度を監視'],
@@ -25,7 +25,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '関東拠点', author: '小林', usedCount: 9, updatedAt: '2026/06/20',
   },
   {
-    id: 'K-103', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '吸排気の閉塞',
+    id: 'K-103', plant: '青森大間発電所', equipmentLabel: 'PCS-07', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '吸排気の閉塞',
     title: '吸気口に落ち葉・鳥の巣。周辺環境もあわせて撮影する',
     symptom: '内部温度異常で停止。ファンは回転している。',
     steps: ['ファンが回っていれば吸排気口の閉塞を疑う', '吸気口・排気口の異物を確認・撮影', '除去後、再起動して内部温度を確認'],
@@ -36,7 +36,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '東北拠点', author: '佐藤', usedCount: 6, updatedAt: '2026/04/15',
   },
   {
-    id: 'K-104', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
+    id: 'K-104', plant: '静岡牧之原発電所', equipmentLabel: 'PCS-01', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
     title: 'ファンのコネクタ半抜け。交換前に必ず確認',
     symptom: '内部温度異常で停止。ファンが回っていない。',
     steps: ['ファンが回っていない場合、交換前にファン電源コネクタの嵌合を確認', '再嵌合して回転を確認', '固定バンドで抜け止め'],
@@ -47,7 +47,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '中部拠点', author: '伊藤', usedCount: 8, updatedAt: '2026/02/18',
   },
   {
-    id: 'K-105', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
+    id: 'K-105', plant: '兵庫三木発電所', equipmentLabel: 'PCS-04', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
     title: 'ファン異音の段階で交換すれば停止を防げた事例',
     symptom: '前回の定期点検でファン異音の記録あり。その3か月後に内部温度異常で停止。',
     steps: ['過去の点検報告書でファン異音の記録を検索', '異音の記録がある同型PCSを一覧化し、前倒しで交換'],
@@ -58,7 +58,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '近畿拠点', author: '中村', usedCount: 5, updatedAt: '2025/11/04',
   },
   {
-    id: 'K-106', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '温度センサ・基板',
+    id: 'K-106', plant: '熊本芦北発電所', equipmentLabel: 'PCS-04', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '温度センサ・基板',
     title: '実際は高温でないのに停止。温度センサの誤検知',
     symptom: '内部温度異常で停止するが、筐体は熱くなく、ファン・吸排気も正常。',
     steps: ['PCS表示の内部温度と、筐体表面の実温度を比べる', '差が大きければセンサ異常としてメーカーに問い合わせ'],
@@ -69,7 +69,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '九州拠点', author: '山下', usedCount: 3, updatedAt: '2025/09/03',
   },
   {
-    id: 'K-201', equipmentType: 'ストリング・パネル', maker: '—', modelClass: '野立て高圧', event: '絶縁抵抗低下・地絡検出', causeGroup: 'コネクタ浸水',
+    id: 'K-201', plant: '千葉いすみ発電所', equipmentLabel: '接続箱3', equipmentType: 'ストリング・パネル', maker: '—', modelClass: '野立て高圧', event: '絶縁抵抗低下・地絡検出', causeGroup: 'コネクタ浸水',
     title: '雨の後だけ出て晴れると消える地絡は、接続箱単位で切り分け',
     symptom: '雨天後に地絡検出で停止。晴れると自然に解消する。',
     steps: ['発生が降雨と連動しているか監視データで確認', '接続箱ごとに絶縁抵抗を測定して系統を絞る', '該当ストリングのコネクタ・ケーブル被覆を確認'],
@@ -80,7 +80,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '関東拠点', author: '小林', usedCount: 11, updatedAt: '2026/06/11',
   },
   {
-    id: 'K-202', equipmentType: '系統', maker: '—', modelClass: '高圧連系', event: '系統異常による停止', causeGroup: '系統側要因',
+    id: 'K-202', plant: '静岡牧之原発電所', equipmentLabel: '連系点', equipmentType: '系統', maker: '—', modelClass: '高圧連系', event: '系統異常による停止', causeGroup: '系統側要因',
     title: '晴天の昼に停止が繰り返すなら系統電圧の上昇を疑う',
     symptom: '晴天の昼に系統異常で停止と復帰を繰り返す。設備側に異常なし。',
     steps: ['停止時刻と系統電圧のログを照合', '近隣の発電所でも同時刻に停止していないか確認', '整定値を確認し、電力会社へ相談'],
@@ -91,7 +91,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '中部拠点', author: '伊藤', usedCount: 7, updatedAt: '2026/05/22',
   },
   {
-    id: 'K-203', equipmentType: '監視・通信', maker: '—', modelClass: '監視装置', event: '監視データの途絶', causeGroup: '通信機器',
+    id: 'K-203', plant: '兵庫三木発電所', equipmentLabel: '監視装置', equipmentType: '監視・通信', maker: '—', modelClass: '監視装置', event: '監視データの途絶', causeGroup: '通信機器',
     title: 'データ途絶でも発電は継続。ルーター再起動で出動不要',
     symptom: '監視データが途絶し、発電量がゼロに見える。',
     steps: ['同じ回線の他設備のデータも途絶しているか確認', '受電量・売電メーターで発電の継続を確認', 'ルーターを遠隔再起動'],
@@ -102,7 +102,7 @@ export const knowledgeCards: KnowledgeCard[] = [
     base: '近畿拠点', author: '中村', usedCount: 19, updatedAt: '2026/07/30',
   },
   {
-    id: 'K-204', equipmentType: 'ストリング・パネル', maker: '—', modelClass: '野立て高圧', event: 'ストリング電流の低下', causeGroup: 'パネル・断線',
+    id: 'K-204', plant: '青森大間発電所', equipmentLabel: 'ストリング12', equipmentType: 'ストリング・パネル', maker: '—', modelClass: '野立て高圧', event: 'ストリング電流の低下', causeGroup: 'パネル・断線',
     title: 'ストリング電流の継続的な低下はドローンのサーモで先に絞る',
     symptom: '特定ストリングの電流が、他より10%以上低い状態が続く。',
     steps: ['低下が天候によらず継続しているか確認', 'ドローンのサーモでホットスポット・断線を確認', '該当パネル・コネクタを現地で確認'],
@@ -118,7 +118,7 @@ export const incidentQuery = { equipmentType: 'PCS', event: '内部温度異常�
 
 const ref = (id: string) => {
   const card = knowledgeCards.find(entry => entry.id === id)!
-  return { id, label: card.title, base: card.base }
+  return { id, label: card.title, base: card.base, plant: card.plant }
 }
 
 // 監視拠点で確認する手順（遠隔）と、担当者のiPadへ送る手順（現地）
@@ -172,7 +172,7 @@ export const captureMaterials = {
 }
 
 export const extractedDraft: KnowledgeCard = {
-  id: 'K-301', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
+  id: 'K-301', plant: '青森大間発電所', equipmentLabel: 'PCS-03', equipmentType: 'PCS', maker: 'メーカーA', modelClass: '50kW級PCS', event: '内部温度異常による停止', causeGroup: '冷却ファン停止',
   title: '温度警告が2週間続いたら、停止前にファンを点検する',
   symptom: '内部温度異常で停止。遠隔再起動で一時復旧するが約20分で再停止。',
   steps: ['監視で停止前の内部温度の推移と、過去の温度警告を確認', '遠隔再起動し、再停止までの時間を記録', '吸排気口の閉塞を確認（異常なし）', 'ファンの回転・コネクタを確認（コネクタ正常・手回しが重い）', '軸受摩耗と判断し冷却ファンを交換', '交換後30分、出力と内部温度を確認'],
